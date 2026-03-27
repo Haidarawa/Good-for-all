@@ -1,0 +1,6 @@
+pandas>=2.1.0
+requests>=2.31.0
+ta>=0.10.2
+websocket-client>=1.6.3
+fastapi>=0.105.0
+uvicorn>=0.23.0
