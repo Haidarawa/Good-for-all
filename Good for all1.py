@@ -153,14 +153,14 @@ def check_commands():
 
             if text == "/start":
                 BOT_RUNNING = True
-                send_telegram("Bot started 🚀")
+                send_telegram("🚀 *Bot started!*")
 
             elif text == "/stop":
                 BOT_RUNNING = False
-                send_telegram("Bot paused ⏸")
+                send_telegram("⏸️ *Bot paused!*")
 
             elif text == "/status":
-                send_telegram(f"Running: {BOT_RUNNING}\nWS: {WS_CONNECTED}")
+                send_telegram(f"ℹ️ *Status*\nBot Running: {BOT_RUNNING}\nWebSocket: {WS_CONNECTED}")
 
             elif text == "/signal":
                 if any(last_signal_message.values()):
@@ -168,7 +168,19 @@ def check_commands():
                         if m:
                             send_telegram(m)
                 else:
-                    send_telegram("No signals yet.")
+                    send_telegram("❌ No signals yet.")
+
+            elif text == "/help":
+                help_msg = """
+📖 *Available Commands:*
+
+▶️ /start  - Start the bot
+⏸️ /stop   - Pause the bot
+ℹ️ /status - Show bot & websocket status
+🚨 /signal - Show the last generated signals
+💡 /help   - Show this help message
+"""
+                send_telegram(help_msg)
 
     except Exception as e:
         print("Command error:", e)
