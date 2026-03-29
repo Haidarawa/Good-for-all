@@ -43,6 +43,22 @@ retry = Retry(total=3, backoff_factor=1,
               status_forcelist=[500, 502, 503, 504])
 session.mount("https://", HTTPAdapter(max_retries=retry))
 
+def clear_webhook():
+    """
+    Deletes any existing Telegram webhook to prevent 409 conflicts.
+    """
+    try:
+        r = session.get(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook?drop_pending_updates=true",
+            timeout=10
+        )
+        print("Webhook cleared:", r.json())
+    except Exception as e:
+        print("Failed to clear webhook:", e)
+
+# Call this once at startup
+clear_webhook()
+
 # =============================
 # STORAGE
 # =============================
