@@ -26,7 +26,7 @@ CHAT_ID = "7434243701"
 
 ACCOUNT_BALANCE = 1000
 RISK_PER_TRADE = 0.02
-MAX_DAILY_LOSS = 0.1
+MAX_DAILY_LOSS = 0.30
 
 BOT_RUNNING = True
 WS_CONNECTED = False
@@ -134,8 +134,9 @@ def check_commands():
         r = session.get(url, params=params, timeout=20)
 
         if r.status_code == 409:
+            # Webhook exists: delete it and return
             print("⚠️ 409 conflict → deleting webhook")
-            session.get(f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook?drop_pending_updates=true")
+            session.get(f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook?drop_pending_updates=true", timeout=10)
             return
 
         if r.status_code != 200:
