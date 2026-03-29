@@ -177,12 +177,82 @@ def check_commands():
 # TELEGRAM LISTENER THREAD
 # =============================
 def telegram_listener():
+    """
+    Telegram listener thread that safely handles long polling and 409 conflicts.
+    """
+    # Clear any existing webhook at thread start
+    try:
+        r = session.get(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook?drop_pending_updates=true",
+            timeout=10
+        )
+        print("Webhook cleared at listener start:", r.json())
+    except Exception as e:
+        print("Failed to clear webhook at listener start:", e)
+
+    global BOT_RUNNING, LAST_UPDATE_ID
+
     while True:
         try:
-            check_commands()
+            url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
+            params = {"timeout": 10, "limit": 5}
+
+            if LAST_UPDATE_ID:
+                params["offset"] = LAST_UPDATE_ID + 1
+
+            r = session.get(url, params=params, timeout=20)
+
+            # Handle 409 conflict if webhook exists
+            if r.status_code == 409:
+                print("⚠️ 409 conflict → deleting webhook")
+                session.get(f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook?drop_pending_updates=true", timeout=10)
+                time.sleep(2)
+                continue
+
+            if r.status_code != 200:
+                print("Telegram bad response:", r.status_code)
+                time.sleep(2)
+                continue
+
+            data = r.json()
+            for update in data.get("result", []):
+                LAST_UPDATE_ID = update["update_id"]
+
+                msg = update.get("message", {})
+                text = msg.get("text", "").strip().lower()
+
+                if text == "/start":
+                    BOT_RUNNING = True
+                    send_telegram("Bot started 🚀")
+
+                elif text == "/stop":
+                    BOT_RUNNING = False
+                    send_telegram("Bot paused ⏸")
+
+                elif text == "/status":
+                    send_telegram(f"Running: {BOT_RUNNING}\nWS: {WS_CONNECTED}")
+
+                elif text == "/signal":
+                    if any(last_signal_message.values()):
+                        for m in last_signal_message.values():
+                            if m:
+                                send_telegram(m)
+                    else:
+                        send_telegram("No signals yet.")
+
+            # Small pause to avoid hitting API limits
             time.sleep(2)
+
+        except requests.exceptions.ConnectionError:
+            print("⚠️ Telegram connection error. Retrying...")
+            time.sleep(2)
+
+        except requests.exceptions.Timeout:
+            print("⚠️ Telegram timeout. Retrying...")
+            time.sleep(2)
+
         except Exception as e:
-            print("Telegram listener error:", e)
+            print("Telegram listener unknown error:", e)
             time.sleep(2)
 
 # =============================
