@@ -84,22 +84,22 @@ def send_telegram(msg):
     """
     Sends a message to Telegram with automatic retries and 409/404 handling.
     """
-    for _ in range(3):  # try up to 3 times
+    for attempt in range(3):  # try up to 3 times
         try:
-            r = requests.post(
+            r = session.post(
                 f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
                 data={"chat_id": CHAT_ID, "text": msg, "parse_mode": "Markdown"},
                 timeout=10
             )
-            
+
             if r.status_code == 200:
                 return  # message sent successfully
 
             elif r.status_code == 409:
                 # Telegram webhook conflict: auto-delete webhook
                 print("⚠️ Telegram 409: webhook conflict detected. Deleting webhook...")
-                requests.get(f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook?drop_pending_updates=true")
-                time.sleep(2)
+                session.get(f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook?drop_pending_updates=true", timeout=10)
+                time.sleep(1)
 
             elif r.status_code == 404:
                 print("⚠️ Telegram 404: bot not found. Check BOT_TOKEN and CHAT_ID.")
@@ -107,18 +107,18 @@ def send_telegram(msg):
 
             else:
                 print(f"⚠️ Telegram unexpected status: {r.status_code}")
-        
+
         except requests.exceptions.ConnectionError:
             print("⚠️ Telegram connection error. Retrying...")
-            time.sleep(2)
+            time.sleep(1)
 
         except requests.exceptions.Timeout:
             print("⚠️ Telegram timeout. Retrying...")
-            time.sleep(2)
+            time.sleep(1)
 
         except Exception as e:
             print("⚠️ Telegram unknown error:", e)
-            time.sleep(2)
+            time.sleep(1)
 
 
 def check_commands():
