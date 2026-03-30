@@ -122,6 +122,10 @@ def send_telegram(msg):
 
 
 def check_commands():
+    """
+    Polls Telegram for updates and handles commands: /start, /stop, /status, /signal, /help.
+    Automatically handles 409 webhook conflicts silently.
+    """
     global BOT_RUNNING, LAST_UPDATE_ID
 
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
@@ -134,13 +138,15 @@ def check_commands():
         r = session.get(url, params=params, timeout=20)
 
         if r.status_code == 409:
-            # Webhook exists: delete it and return
-            print("⚠️ 409 conflict → deleting webhook")
-            session.get(f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook?drop_pending_updates=true", timeout=10)
+            # Webhook exists: delete silently
+            try:
+                session.get(f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook?drop_pending_updates=true", timeout=10)
+            except:
+                pass
             return
 
         if r.status_code != 200:
-            print("Telegram bad response:", r.status_code)
+            print("⚠️ Telegram bad response:", r.status_code)
             return
 
         data = r.json()
@@ -151,6 +157,7 @@ def check_commands():
             msg = update.get("message", {})
             text = msg.get("text", "").strip().lower()
 
+            # ===== COMMANDS =====
             if text == "/start":
                 BOT_RUNNING = True
                 send_telegram("🚀 *Bot started!*")
@@ -183,7 +190,7 @@ def check_commands():
                 send_telegram(help_msg)
 
     except Exception as e:
-        print("Command error:", e)
+        print("⚠️ Command error:", e)
 
 # =============================
 # TELEGRAM LISTENER THREAD
